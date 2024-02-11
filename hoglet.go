@@ -77,24 +77,16 @@ func (d *dedupedObserver) Observe(failure bool) {
 
 // NewCircuit instantiates a new [Circuit] that wraps the provided function. See [Circuit.Call] for calling semantics.
 // A Circuit with a nil breaker is a noop wrapper around the provided function and will never open.
-func NewCircuit[IN, OUT any](f WrappedFunc[IN, OUT], breaker Breaker, opts ...Option) (*Circuit[IN, OUT], error) {
+func NewCircuit[IN, OUT any](f WrappedFunc[IN, OUT], opts ...Option) (*Circuit[IN, OUT], error) {
 	c := &Circuit[IN, OUT]{
 		f: f,
 	}
 
 	o := options{
-		isFailure: defaultFailureCondition,
-		breaker:   noopBreaker{},
+		isFailure:       defaultFailureCondition,
+		breaker:         noopBreaker{},
+		observerFactory: c,
 	}
-
-	if breaker != nil {
-		o.breaker = breaker
-		// apply breaker as last, so it can verify
-		opts = append(opts, breaker)
-	}
-
-	// the default observerFactory is the circuit itself
-	o.observerFactory = c
 
 	for _, opt := range opts {
 		if err := opt.apply(&o); err != nil {
@@ -102,6 +94,7 @@ func NewCircuit[IN, OUT any](f WrappedFunc[IN, OUT], breaker Breaker, opts ...Op
 		}
 	}
 
+	// this internal circular dependency is why???
 	c.options = o
 
 	return c, nil

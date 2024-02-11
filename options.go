@@ -60,3 +60,15 @@ func WithBreakerMiddleware(bm BreakerMiddleware) Option {
 		return nil
 	})
 }
+
+// WithBreaker allows specifying the [Breaker] to use.
+// WithBreaker also add the breaker's [[apply]] method as an option, so it can be used with [WithOptions].
+func WithBreaker(b Breaker) []Option {
+	return []Option{
+		optionFunc(func(o *options) error {
+			o.breaker = b
+			return nil
+		}),
+		optionFunc(b.apply),
+	}
+}
